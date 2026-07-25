@@ -25,6 +25,22 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.6",
+    date: { es: "25 jul 2026", en: "25 Jul 2026" },
+    title: {
+      es: "Compartir, Soporte y meta de donación real",
+      en: "Share, Support and a real donation goal",
+    },
+    body: {
+      es: "«Tu espacio» estrena dos pestañas: Compartir (X, WhatsApp, Telegram, email, Bluesky, Facebook, LinkedIn, Reddit, con vista previa del enlace) y Soporte, con un formulario directo para reportar fallos o pedir ayuda.",
+      en: "“Your space” gets two new tabs: Share (X, WhatsApp, Telegram, email, Bluesky, Facebook, LinkedIn, Reddit, with a link preview) and Support, with a direct form to report bugs or ask for help.",
+    },
+    more: {
+      es: "El panel de donaciones ya muestra la meta y el progreso reales (no cifras de ejemplo), y el banner del sidebar puede mostrar anuncios propios. También arreglamos los tooltips (no aparecían), añadimos una explicación de «intensidad» en el radar de red, ajustamos su color en tema claro y unificamos «Volúmenes APFS» dentro de «En qué se usa tu disco» en Almacenamiento.",
+      en: "The donation panel now shows the real goal and progress (not example figures), and the sidebar banner can show our own ads. We also fixed tooltips (they weren't showing), added an explanation of “intensity” to the network radar, tweaked its color in light theme, and merged “APFS Volumes” into “Where your disk is used” in Storage.",
+    },
+  },
+  {
     v: "0.2.5",
     date: { es: "22 jul 2026", en: "22 Jul 2026" },
     title: {
