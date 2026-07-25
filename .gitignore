@@ -29,3 +29,7 @@ vite.config.d.ts
 *.sln
 *.sw?
 .claude/skills/claude-a11y-skill/
+
+# Assets pesados de marketing/docs (no van al historial de git)
+docs/banner/
+docs/old img/
