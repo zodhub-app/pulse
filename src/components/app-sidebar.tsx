@@ -45,7 +45,7 @@ export function AppSidebar({
               ZodHub Pulse
             </span>
             <span className="text-[10px] text-muted-foreground">
-              {t("Mantenimiento del equipo")}
+              {t("Mantenimiento inteligente")}
             </span>
           </div>
         </div>

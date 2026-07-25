@@ -251,6 +251,34 @@ export function subscribeAvailable(): Promise<boolean> {
   return Promise.resolve(true);
 }
 
+/** Envío del formulario de soporte a la superficie de app de zodhub.app.
+ *
+ * Apunta a `/api/app/contact` (la ruta con el mismo CORS + cabecera de app que
+ * newsletter/donaciones). El contrato replica al del contacto público:
+ * `topic, name, email, message` (obligatorios) + `topicLabel` y honeypot.
+ * NOTA: ese endpoint hay que CREARLO en el backend (mirror del contacto público
+ * con `withAppCors`); hasta entonces devolverá 404. No admite adjuntos (el
+ * contacto tiene un tope de cuerpo pequeño), así que el teléfono va en el texto.
+ */
+export type SupportInput = {
+  topic: string;
+  topicLabel?: Record<string, string>;
+  name: string;
+  email: string;
+  message: string;
+};
+export async function submitSupport(input: SupportInput): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/app/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...APP_HEADERS },
+    body: JSON.stringify({ ...input, __hp_field: "" }),
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `support_failed_${res.status}`);
+  }
+}
+
 /** Alta voluntaria en novedades. Único envío de datos que hace la app. */
 export async function subscribe(name: string, email: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/app/newsletter`, {
@@ -357,6 +385,36 @@ export function setTrayVisible(visible: boolean): Promise<void> {
 export type DonationIntent = { clientSecret: string; publishableKey: string };
 
 /**
+ * Estado real de las donaciones, leído de la web (espejo de la config que usa
+ * zodhub.app). Es la ÚNICA fuente de verdad de la meta: `open` (abiertas o no),
+ * `goalAmount`/`current`/`pct` (progreso) y `goalLabel`. `isExample` avisa de
+ * que `current` son cifras de ejemplo (modo manual), no donaciones reales.
+ * Importes en unidades BASE (euros, no céntimos), igual que la web.
+ */
+export type DonationConfig = {
+  open: boolean;
+  goalAmount: number;
+  currency: string;
+  goalLabel: string;
+  current: number;
+  isExample: boolean;
+  pct: number;
+};
+
+/** Lee el estado/meta de donaciones desde la superficie de app de zodhub.app. */
+export async function getDonationConfig(): Promise<DonationConfig> {
+  const res = await fetch(`${API_BASE}/api/app/donations/stats`, {
+    method: "GET",
+    headers: { ...APP_HEADERS },
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `donation_stats_failed_${res.status}`);
+  }
+  return (await res.json()) as DonationConfig;
+}
+
+/**
  * Pide al backend un PaymentIntent de donación. `amountMinor` va en unidades
  * menores (céntimos): el servidor lo acota a su rango; el cliente no decide el
  * cobro. Devuelve el client_secret + la publishable key para Stripe Elements.
@@ -381,4 +439,86 @@ export async function createDonationIntent(
     throw new Error(j.error || `donation_intent_failed_${res.status}`);
   }
   return (await res.json()) as DonationIntent;
+}
+
+// ── Anuncios (banner remoto desde ZodHub) ────────────────────────────────────
+export type AdType = "image" | "native" | "embed" | "html" | "video";
+
+/** Anuncio servido por `/api/app/ads/serve` (forma según `type`). */
+export type Ad = {
+  id: string;
+  type: AdType;
+  imageUrl?: string;
+  width?: number;
+  height?: number;
+  alt?: string;
+  title?: string;
+  body?: string;
+  ctaText?: string;
+  provider?: string;
+  client?: string;
+  slot?: string;
+  snippet?: string;
+  html?: string;
+  sandbox?: boolean;
+  videoUrl?: string;
+  poster?: string;
+  /** Ruta relativa del redirect de clic (usar `adClickUrl` para la URL completa). */
+  clickUrl?: string;
+  impressionToken: string;
+};
+
+export type AdRequest = {
+  placement: string;
+  locale?: string;
+  country?: string;
+  deviceId: string;
+  deviceType?: string;
+};
+
+/** URL absoluta del clic (abrir en el navegador con `openUrl`). */
+export function adClickUrl(ad: Ad): string | null {
+  return ad.clickUrl ? `${API_BASE}${ad.clickUrl}` : null;
+}
+
+/**
+ * Pide un anuncio para un hueco. Devuelve `null` cuando no hay ninguno elegible
+ * (o si el backend/red falla): el hueco simplemente muestra su contenido propio.
+ */
+export async function serveAd(req: AdRequest): Promise<Ad | null> {
+  const q = new URLSearchParams({ placement: req.placement, deviceId: req.deviceId });
+  if (req.locale) q.set("locale", req.locale);
+  if (req.country) q.set("country", req.country);
+  if (req.deviceType) q.set("deviceType", req.deviceType);
+  try {
+    const res = await fetch(`${API_BASE}/api/app/ads/serve?${q.toString()}`, {
+      method: "GET",
+      headers: { ...APP_HEADERS },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { ok?: boolean; ad?: Ad | null };
+    const ad = data.ad ?? null;
+    // Las URLs de imagen vienen relativas al servidor ZodHub; en la app (otro
+    // origen) hay que volverlas absolutas o no cargan.
+    if (ad) {
+      if (ad.imageUrl?.startsWith("/")) ad.imageUrl = `${API_BASE}${ad.imageUrl}`;
+      if (ad.poster?.startsWith("/")) ad.poster = `${API_BASE}${ad.poster}`;
+    }
+    return ad;
+  } catch {
+    return null;
+  }
+}
+
+/** Cuenta la impresión cuando el anuncio se muestra de verdad. Best-effort. */
+export async function adImpression(impressionToken: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/app/ads/impression`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...APP_HEADERS },
+      body: JSON.stringify({ impressionToken }),
+    });
+  } catch {
+    /* best-effort */
+  }
 }

@@ -1,11 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  AtSign,
   BadgeCheck,
   Bell,
-  Bug,
   ChevronDown,
+  Clock,
+  Cloud,
   Code2,
   Coffee,
+  Copy,
+  Facebook,
   FileText,
   Gauge,
   Github,
@@ -13,28 +17,42 @@ import {
   Globe2,
   Heart,
   HeartHandshake,
+  LifeBuoy,
   Linkedin,
   Loader2,
   Lock,
   Mail,
+  MessageCircle,
+  MessageSquare,
   Newspaper,
   Scale,
+  Send,
   Server,
   Share2,
   ShieldCheck,
   Sparkles,
+  Twitter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
 import { useUpdates } from "@/components/updates-provider";
-import { subscribe, subscribeAvailable } from "@/lib/api";
+import { subscribe, subscribeAvailable, submitSupport } from "@/lib/api";
 import { openUrl } from "@/lib/links";
+import { shareImage, shareText, shareUrls } from "@/lib/share";
 import { DonatePanel } from "@/components/donate-panel";
 import { changelog, localize } from "@/data/changelog";
 
@@ -94,6 +112,20 @@ export function AccountPage() {
             <Heart className="size-4" />
             {t("Apoyar")}
           </TabsTrigger>
+          <TabsTrigger
+            value="compartir"
+            className="data-[state=active]:border-foreground/[0.07] dark:data-[state=active]:border-foreground/[0.07]"
+          >
+            <Share2 className="size-4" />
+            {t("Compartir")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="soporte"
+            className="data-[state=active]:border-foreground/[0.07] dark:data-[state=active]:border-foreground/[0.07]"
+          >
+            <LifeBuoy className="size-4" />
+            {t("Soporte")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="novedades">
@@ -113,6 +145,14 @@ export function AccountPage() {
 
         <TabsContent value="apoyar">
           <SupportTab />
+        </TabsContent>
+
+        <TabsContent value="compartir">
+          <ShareTab />
+        </TabsContent>
+
+        <TabsContent value="soporte">
+          <SupportFormTab />
         </TabsContent>
       </Tabs>
 
@@ -609,10 +649,22 @@ function SupportTab() {
     },
   ];
 
-  const free: Array<{ icon: typeof Share2; label: string; url: string }> = [
-    { icon: Share2, label: t("Compártelo en X"), url: LINKS.shareX },
-    { icon: Linkedin, label: t("Compártelo en LinkedIn"), url: LINKS.shareLinkedin },
-    { icon: Bug, label: t("Reporta un fallo"), url: LINKS.issues },
+  const reasons: Array<{ icon: typeof Sparkles; title: string; desc: string }> = [
+    {
+      icon: Sparkles,
+      title: t("Gratis para todos"),
+      desc: t("Mantiene Pulse 100% gratis, sin anuncios ni funciones de pago."),
+    },
+    {
+      icon: Gauge,
+      title: t("Funciones nuevas"),
+      desc: t("Financia el desarrollo y el soporte para Linux y Windows."),
+    },
+    {
+      icon: Lock,
+      title: t("Independiente"),
+      desc: t("Sin inversores ni intermediarios: tu aporte llega entero."),
+    },
   ];
 
   return (
@@ -658,33 +710,358 @@ function SupportTab() {
           </div>
         </section>
 
-        {/* Ayudar es gratis. */}
+        {/* Por qué tu apoyo importa — anima a donar, a la misma altura. */}
         <section data-slot="card" className="rounded-lg border bg-card p-5">
           <header className="mb-1 flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            <h3 className="text-sm font-medium">{t("¿Sin presupuesto? Igual ayudas")}</h3>
+            <HeartHandshake className="size-4 text-rose-500" />
+            <h3 className="text-sm font-medium">{t("Por qué tu apoyo importa")}</h3>
           </header>
           <p className="mb-4 text-xs leading-5 text-muted-foreground">
-            {t("Ayudar es gratis. Cualquiera de estas suma un montón:")}
+            {t("Pulse es gratis y sin anuncios. Tu donación es justo lo que lo mantiene así:")}
           </p>
-          <div className="space-y-1.5">
-            {free.map((f) => (
-              <button
-                key={f.label}
-                onClick={() => openUrl(f.url)}
-                className="flex w-full items-center gap-2.5 rounded-lg border border-foreground/[0.07] px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
-              >
-                <f.icon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1">{f.label}</span>
-                <ChevronDown className="size-3.5 -rotate-90 text-muted-foreground" />
-              </button>
+          <div className="space-y-3">
+            {reasons.map((r) => (
+              <div key={r.title} className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-rose-500/12 text-rose-500">
+                  <r.icon className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{r.title}</p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                    {r.desc}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
-            {t("Donéis o no, gracias por usar ZodHub Pulse. De verdad.")}
+            {t("Con lo que cuesta un café ya ayudas de verdad. Sin cuotas ni compromiso.")}
           </p>
         </section>
       </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────── Tab · Soporte ─────────────────────────────── */
+
+const SUPPORT_TOPICS: Array<{ id: string; es: string; en: string }> = [
+  { id: "support", es: "Soporte técnico", en: "Technical support" },
+  { id: "bug", es: "Error o fallo", en: "Bug or error" },
+  { id: "suggestion", es: "Sugerencia", en: "Suggestion" },
+  { id: "other", es: "Otro", en: "Other" },
+];
+
+function SupportFormTab() {
+  const { t } = useLang();
+  // Campos EXACTOS del sistema de contacto (name, email, topic, message). No hay
+  // apellidos/teléfono/adjuntos en el modelo, así que no se piden: enviarlos
+  // solo confundiría y el backend los ignoraría.
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [topic, setTopic] = useState("support");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const emailOk = email.includes("@") && email.includes(".") && email.length > 4;
+  const canSend =
+    name.trim() !== "" && emailOk && message.trim().length > 4 && !sending;
+
+  async function onSubmit() {
+    setSending(true);
+    try {
+      const label = SUPPORT_TOPICS.find((x) => x.id === topic);
+      await submitSupport({
+        topic,
+        topicLabel: label ? { es: label.es, en: label.en } : undefined,
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+      });
+      setDone(true);
+      toast.success(t("Mensaje enviado. Te responderemos por email."));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(t("No se pudo enviar el mensaje."), {
+        description: msg || undefined,
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const points: Array<{ icon: typeof LifeBuoy; title: string; desc: string }> = [
+    {
+      icon: Mail,
+      title: t("Respuesta por email"),
+      desc: t("Te contestamos a la dirección que dejes, en tu idioma."),
+    },
+    {
+      icon: Clock,
+      title: t("Leemos todo"),
+      desc: t("Es un proyecto pequeño; respondemos en cuanto podemos."),
+    },
+    {
+      icon: ShieldCheck,
+      title: t("Tus datos, solo para responderte"),
+      desc: t("No se usan para nada más ni se comparten. Cero telemetría."),
+    },
+  ];
+
+  return (
+    <div className="grid items-start gap-2.5 lg:grid-cols-[3fr_2fr]">
+      {/* Izquierda (60%): formulario. */}
+      <section data-slot="card" className="rounded-lg border bg-card p-5">
+        {done ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <span className="mb-2 flex size-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
+              <BadgeCheck className="size-5" />
+            </span>
+            <p className="text-sm font-medium">{t("¡Gracias! Mensaje recibido.")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("Te responderemos por email lo antes posible.")}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="sup-name" className="text-xs">
+                  {t("Nombre")}
+                </Label>
+                <Input
+                  id="sup-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t("Tu nombre")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sup-email" className="text-xs">
+                  {t("Correo electrónico")}
+                </Label>
+                <Input
+                  id="sup-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-topic" className="text-xs">
+                {t("Asunto")}
+              </Label>
+              <Select value={topic} onValueChange={setTopic}>
+                <SelectTrigger id="sup-topic" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORT_TOPICS.map((x) => (
+                    <SelectItem key={x.id} value={x.id}>
+                      {t(x.es)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-msg" className="text-xs">
+                {t("Descripción")}
+              </Label>
+              <Textarea
+                id="sup-msg"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={7}
+                className="resize-y leading-6"
+                placeholder={t("Cuéntanos qué pasa, con el máximo detalle posible.")}
+              />
+            </div>
+            <Button className="w-full" disabled={!canSend} onClick={onSubmit}>
+              {sending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {t("Enviando…")}
+                </>
+              ) : (
+                <>
+                  <Send className="size-4" />
+                  {t("Enviar mensaje")}
+                </>
+              )}
+            </Button>
+            <p className="flex items-start gap-2 text-[11px] leading-4 text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+              {t(
+                "Solo se envía lo que escribas aquí, y solo al pulsar Enviar. Se gestiona con las mismas reglas que el soporte de zodhub.app.",
+              )}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Derecha (40%): info de soporte. */}
+      <section data-slot="card" className="rounded-lg border bg-card p-5">
+        <header className="mb-1 flex items-center gap-2">
+          <LifeBuoy className="size-4 text-primary" />
+          <h3 className="text-sm font-medium">{t("¿Algo no funciona?")}</h3>
+        </header>
+        <p className="mb-4 text-xs leading-5 text-muted-foreground">
+          {t(
+            "Cuéntanos el problema, el error o lo que echas en falta. Cuanto más detalle, mejor te ayudamos.",
+          )}
+        </p>
+        <div className="space-y-3">
+          {points.map((p) => (
+            <div key={p.title} className="flex items-start gap-3">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                <p.icon className="size-4" />
+              </span>
+              <div>
+                <p className="text-sm font-medium leading-tight">{p.title}</p>
+                <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                  {p.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Separator className="my-4" />
+        <p className="text-[11px] leading-4 text-muted-foreground">
+          {t(
+            "Para una captura, por ahora descríbela o pégala en el mensaje; el adjunto de archivos llegará pronto.",
+          )}
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/* ─────────────────────────── Tab · Compartir ───────────────────────────── */
+
+function ShareTab() {
+  const { t, lang } = useLang();
+  const text = shareText(lang);
+  const urls = shareUrls(lang);
+  // La imagen OG real de zodhub.app. Si no cargara (sin red), caemos a la
+  // tarjeta de marca para no dejar un hueco roto.
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const socials: Array<{
+    icon: typeof Share2;
+    label: string;
+    url: string;
+    color: string;
+  }> = [
+    { icon: MessageCircle, label: t("Compartir en WhatsApp"), url: urls.whatsapp, color: "text-[#25d366]" },
+    { icon: Twitter, label: t("Compartir en X"), url: urls.x, color: "text-foreground" },
+    { icon: Send, label: t("Compartir en Telegram"), url: urls.telegram, color: "text-[#229ed9]" },
+    { icon: Mail, label: t("Enviar por Gmail"), url: urls.gmail, color: "text-[#ea4335]" },
+    { icon: AtSign, label: t("Enviar por Yahoo"), url: urls.yahoo, color: "text-[#6001d2]" },
+    { icon: Facebook, label: t("Compartir en Facebook"), url: urls.facebook, color: "text-[#1877f2]" },
+    { icon: Linkedin, label: t("Compartir en LinkedIn"), url: urls.linkedin, color: "text-[#0a66c2]" },
+    { icon: MessageSquare, label: t("Compartir en Reddit"), url: urls.reddit, color: "text-[#ff4500]" },
+    { icon: Cloud, label: t("Compartir en Bluesky"), url: urls.bluesky, color: "text-[#0085ff]" },
+  ];
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(t("Texto copiado"));
+    } catch {
+      toast.error(t("No se pudo copiar"));
+    }
+  }
+
+  return (
+    <div className="grid gap-2.5 lg:grid-cols-[3fr_2fr]">
+      {/* Izquierda: UNA sola card que imita cómo se verá al compartir —el texto
+          arriba (el post) y debajo la tarjeta del enlace con la imagen real. */}
+      <section data-slot="card" className="rounded-lg border bg-card p-5">
+        <header className="mb-3 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <Share2 className="size-4 text-primary" />
+            <h3 className="text-sm font-medium">{t("Vista previa de lo que compartirás")}</h3>
+          </span>
+          <Button variant="secondary" size="sm" onClick={copy}>
+            <Copy className="size-3.5" />
+            {t("Copiar texto")}
+          </Button>
+        </header>
+
+        <div className="rounded-lg border border-foreground/[0.07] bg-background/40 p-3">
+          {/* Texto del post */}
+          <p className="whitespace-pre-line text-sm leading-6">{text}</p>
+
+          {/* Tarjeta del enlace (imagen + título + dominio), como en una red. */}
+          <div className="mt-3 overflow-hidden rounded-lg border border-foreground/[0.07] bg-card">
+            <div className="flex h-56 items-center justify-center bg-background/40">
+              {imgFailed ? (
+                <div className="flex flex-col items-center justify-center gap-2 p-6 text-center">
+                  <span className="logo-badge flex size-12 items-center justify-center rounded-xl text-white">
+                    <Sparkles className="size-6" />
+                  </span>
+                  <span className="gradient-text text-xl font-bold">ZodHub Pulse</span>
+                </div>
+              ) : (
+                <img
+                  src={shareImage(lang)}
+                  alt={t("Imagen del enlace")}
+                  loading="lazy"
+                  onError={() => setImgFailed(true)}
+                  className="max-h-full max-w-full object-contain"
+                />
+              )}
+            </div>
+            <div className="border-t border-foreground/[0.07] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {lang === "en" ? "zodhub.app" : "zodhub.app/es"}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold leading-tight">ZodHub Pulse</p>
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                {t("Mantenimiento inteligente para Mac, Windows y Linux · gratis")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+          {t(
+            "Se comparte en el idioma de la app. Así es más o menos como se verá al publicarlo.",
+          )}
+        </p>
+      </section>
+
+      {/* Derecha: redes para compartir. Se estira a la MISMA altura que la vista
+          previa y los botones se reparten para llenar la card (bordes alineados). */}
+      <section
+        data-slot="card"
+        className="flex flex-col rounded-lg border bg-card p-5"
+      >
+        <header className="mb-1 flex items-center gap-2">
+          <Share2 className="size-4 text-primary" />
+          <h3 className="text-sm font-medium">{t("Compartir en")}</h3>
+        </header>
+        <p className="mb-4 text-xs leading-5 text-muted-foreground">
+          {t("Un clic y llega a más gente que cualquier anuncio. Gracias por correr la voz.")}
+        </p>
+        <div className="flex flex-1 flex-col justify-between gap-1.5">
+          {socials.map((s) => (
+            <button
+              key={s.label}
+              onClick={() => openUrl(s.url)}
+              className="flex w-full items-center gap-2.5 rounded-lg border border-foreground/[0.07] px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
+            >
+              <s.icon className={cn("size-4 shrink-0", s.color)} />
+              <span className="flex-1">{s.label}</span>
+              <ChevronDown className="size-3.5 -rotate-90 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

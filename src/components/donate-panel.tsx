@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
-import { createDonationIntent } from "@/lib/api";
+import { createDonationIntent, getDonationConfig } from "@/lib/api";
+import { useCachedResource } from "@/hooks/use-cached-resource";
 
 // Importes sugeridos, en unidades menores (céntimos): 3 €, 5 €, 10 €, 25 €.
 const AMOUNTS = [300, 500, 1000, 2500] as const;
@@ -30,6 +31,12 @@ function stripeFor(pk: string): Promise<Stripe | null> {
 function euros(minor: number): string {
   const n = minor / 100;
   return `${n.toLocaleString("es-ES", { maximumFractionDigits: 2 })} €`;
+}
+
+/** Formatea un importe en unidades BASE (no céntimos) con su divisa. */
+function money(base: number, currency: string): string {
+  const n = base.toLocaleString("es-ES", { maximumFractionDigits: 2 });
+  return currency === "EUR" ? `${n} €` : `${n} ${currency}`;
 }
 
 /** Paso de pago: tarjeta (Stripe Elements) + confirmación, todo dentro de la app. */
@@ -100,10 +107,17 @@ export function DonatePanel() {
   const [freq, setFreq] = useState<"once" | "monthly">("once");
   const [amount, setAmount] = useState<number>(500);
   const [custom, setCustom] = useState("");
-  const [closed, setClosed] = useState(false);
+  const [closedErr, setClosedErr] = useState(false);
   const [busy, setBusy] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [pk, setPk] = useState<string | null>(null);
+
+  // Estado/meta REAL, leído de la web (mismo config que zodhub.app). Se cachea
+  // por pestaña y se revalida solo; si la web cambia la meta o cierra/abre las
+  // donaciones, la app lo refleja sin tocar código.
+  const { data: cfg } = useCachedResource("donations:config", getDonationConfig);
+  // Cerrado si la web lo dice, o si el intento devolvió `donations_closed`.
+  const closed = closedErr || (cfg ? !cfg.open : false);
 
   // Importe efectivo: la cantidad personalizada manda si es válida (≥ 1 €).
   const customMinor = Math.round(
@@ -121,7 +135,7 @@ export function DonatePanel() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       if (msg === "donations_closed") {
-        setClosed(true);
+        setClosedErr(true);
       } else if (
         msg === "stripe_not_configured" ||
         msg === "stripe_publishable_key_missing"
@@ -261,29 +275,48 @@ export function DonatePanel() {
         )}
       </section>
 
-      {/* Derecha: meta del mes (tarjeta oscura de acento, como en la web). */}
-      <section className="rounded-lg border border-white/10 bg-[#0e1526] p-5 text-slate-100">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-sky-300/80">
+      {/* Derecha: meta REAL del mes (sincronizada con la web), mismo color de card. */}
+      <section data-slot="card" className="rounded-lg border bg-card p-5">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           {t("Meta del mes · Costes")}
         </p>
-        <div className="mt-2 flex items-end justify-between gap-2">
-          <span className="text-4xl font-semibold leading-none tabular-nums">64%</span>
-          <span className="text-sm tabular-nums text-slate-400">128 € / 200 €</span>
-        </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-500"
-            style={{ width: "64%" }}
-          />
-        </div>
-        <p className="mt-4 text-sm leading-6 text-slate-300">
+        {cfg ? (
+          <>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <span className="text-4xl font-semibold leading-none tabular-nums text-foreground">
+                {cfg.pct}%
+              </span>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {money(cfg.current, cfg.currency)} / {money(cfg.goalAmount, cfg.currency)}
+              </span>
+            </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, cfg.pct))}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          // Aún cargando la meta desde la web: esqueleto, sin inventar cifras.
+          <>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <span className="h-9 w-16 animate-pulse rounded bg-muted" />
+              <span className="h-4 w-24 animate-pulse rounded bg-muted" />
+            </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted" />
+          </>
+        )}
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
           {t(
             "Esto cubre el servidor de descargas, el dominio y las horas de desarrollo. Cuando llegamos a la meta, todo lo demás va a mejorar la app.",
           )}
         </p>
-        <p className="mt-3 text-xs text-slate-500">
-          {t("Cifras de ejemplo; publicaremos las reales en cuanto abramos donaciones.")}
-        </p>
+        {cfg?.isExample && (
+          <p className="mt-3 text-xs text-muted-foreground/70">
+            {t("Cifras de ejemplo; publicaremos las reales en cuanto abramos donaciones.")}
+          </p>
+        )}
       </section>
     </div>
   );

@@ -21,6 +21,7 @@ const EN: Record<string, string> = {
   Tareas: "Tasks",
   Ajustes: "Settings",
   "Mantenimiento del equipo": "Device maintenance",
+  "Mantenimiento inteligente": "Smart Maintenance",
   "Tu equipo, ": "Your device, ",
   "Tu equipo, sencillamente limpio y seguro.":
     "Your device, simply clean and safe.",
@@ -121,7 +122,7 @@ const EN: Record<string, string> = {
 
   // ── Tu espacio · pestañas nuevas (novedades, suscripción, apoyo) ──────
   Suscripción: "Subscribe",
-  Apoyar: "Support",
+  Apoyar: "Donate",
   "Lo último que hemos traído": "The latest we've shipped",
   "Ver más": "Show more",
   "Ver menos": "Show less",
@@ -149,6 +150,89 @@ const EN: Record<string, string> = {
   "Pago seguro con tarjeta, dentro de la app. Donar no desbloquea nada.":
     "Secure card payment, inside the app. Donating unlocks nothing.",
   "A dónde va cada euro": "Where each euro goes",
+  "Por qué tu apoyo importa": "Why your support matters",
+  "Pulse es gratis y sin anuncios. Tu donación es justo lo que lo mantiene así:":
+    "Pulse is free and ad-free. Your donation is exactly what keeps it that way:",
+  "Gratis para todos": "Free for everyone",
+  "Mantiene Pulse 100% gratis, sin anuncios ni funciones de pago.":
+    "Keeps Pulse 100% free, with no ads or paid features.",
+  "Funciones nuevas": "New features",
+  "Financia el desarrollo y el soporte para Linux y Windows.":
+    "Funds development and support for Linux and Windows.",
+  Independiente: "Independent",
+  "Sin inversores ni intermediarios: tu aporte llega entero.":
+    "No investors or middlemen: your contribution arrives in full.",
+  "Con lo que cuesta un café ya ayudas de verdad. Sin cuotas ni compromiso.":
+    "For the price of a coffee you're already helping. No fees, no commitment.",
+  Compartir: "Share",
+  "Compartir en X": "Share on X",
+  "Compartir en WhatsApp": "Share on WhatsApp",
+  "Compartir en Telegram": "Share on Telegram",
+  "Enviar por email": "Send by email",
+  "Enviar por Gmail": "Send with Gmail",
+  "Enviar por Yahoo": "Send with Yahoo",
+  "Vista previa de lo que compartirás": "Preview of what you'll share",
+  "Se comparte en el idioma de la app. Así es más o menos como se verá al publicarlo.":
+    "It shares in the app's language. This is roughly how it'll look when posted.",
+  "Compartir en Bluesky": "Share on Bluesky",
+  "Compartir en Facebook": "Share on Facebook",
+  "Compartir en LinkedIn": "Share on LinkedIn",
+  "Compartir en Reddit": "Share on Reddit",
+  "Compartir en": "Share on",
+  "Esto es lo que compartirás": "This is what you'll share",
+  "Copiar texto": "Copy text",
+  "Texto copiado": "Text copied",
+  "No se pudo copiar": "Couldn't copy",
+  "Se comparte en el idioma de la app. En X sale el texto tal cual; LinkedIn y Reddit toman el enlace, por eso puedes copiar el texto y pegarlo.":
+    "It shares in the app's language. On X the text goes as-is; LinkedIn and Reddit take the link, so you can copy the text and paste it.",
+  "Imagen del enlace": "Link image",
+  "Mantenimiento inteligente para Mac, Windows y Linux · gratis":
+    "Smart maintenance for Mac, Windows and Linux · free",
+  "Vista de ejemplo": "Example preview",
+  "La imagen real que se comparte": "The real image that gets shared",
+  "Es la imagen (og:image) que zodhub.app muestra al pegar el enlace en redes.":
+    "It's the image (og:image) zodhub.app shows when you paste the link on social media.",
+  "Cuando la web esté lista, esta es la tarjeta que verán al pegar el enlace.":
+    "Once the site is ready, this is the card people will see when they paste the link.",
+  "Un clic y llega a más gente que cualquier anuncio. Gracias por correr la voz.":
+    "One click reaches more people than any ad. Thanks for spreading the word.",
+  Soporte: "Support",
+  "Soporte técnico": "Technical support",
+  "Error o fallo": "Bug or error",
+  Sugerencia: "Suggestion",
+  Otro: "Other",
+  Teléfono: "Phone",
+  "¿Algo no funciona?": "Something not working?",
+  "Cuéntanos el problema, el error o lo que echas en falta. Cuanto más detalle, mejor te ayudamos.":
+    "Tell us the problem, the bug or what you're missing. The more detail, the better we can help.",
+  "Respuesta por email": "Reply by email",
+  "Te contestamos a la dirección que dejes, en tu idioma.":
+    "We'll reply to the address you leave, in your language.",
+  "Leemos todo": "We read everything",
+  "Es un proyecto pequeño; respondemos en cuanto podemos.":
+    "It's a small project; we reply as soon as we can.",
+  "Tus datos, solo para responderte": "Your data, only to reply to you",
+  "No se usan para nada más ni se comparten. Cero telemetría.":
+    "Not used for anything else or shared. Zero telemetry.",
+  "Para una captura, por ahora descríbela o pégala en el mensaje; el adjunto de archivos llegará pronto.":
+    "For a screenshot, for now describe it or paste it in the message; file attachments are coming soon.",
+  "¡Gracias! Mensaje recibido.": "Thanks! Message received.",
+  "Te responderemos por email lo antes posible.":
+    "We'll reply by email as soon as possible.",
+  Nombre: "First name",
+  Apellidos: "Last name",
+  "Tus apellidos": "Your last name",
+  "Teléfono (opcional)": "Phone (optional)",
+  Asunto: "Subject",
+  Descripción: "Description",
+  "Cuéntanos qué pasa, con el máximo detalle posible.":
+    "Tell us what's going on, in as much detail as possible.",
+  "Enviar mensaje": "Send message",
+  "Mensaje enviado. Te responderemos por email.":
+    "Message sent. We'll reply by email.",
+  "No se pudo enviar el mensaje.": "Couldn't send the message.",
+  "Solo se envía lo que escribas aquí, y solo al pulsar Enviar. Se gestiona con las mismas reglas que el soporte de zodhub.app.":
+    "Only what you type here is sent, and only when you press Send. It's handled with the same rules as zodhub.app support.",
   "Sin sueldos millonarios ni humo. Esto es lo que sostiene el proyecto:":
     "No sky-high salaries or smoke. This is what keeps the project going:",
   "Servidor y CDN": "Server and CDN",
@@ -510,6 +594,8 @@ const EN: Record<string, string> = {
     "Adds up to the total used. For a folder-by-folder breakdown, use the Explorer.",
   "Tus carpetas reales, Aplicaciones y el sistema. Suma el total usado; para bajar más al detalle, usa el Explorador.":
     "Your real folders, Applications and the system. Adds up to the total used; for more detail, use the Explorer.",
+  "Tus carpetas reales, Aplicaciones y el sistema, por orden de tamaño. Suma el total usado; para bajar al detalle, usa el Explorador.":
+    "Your real folders, Applications and the system, ordered by size. Adds up to the total used; for detail, use the Explorer.",
   "Sistema y otros (fuera de tu carpeta)":
     "System & other (outside your home folder)",
   "En los últimos días tu disco ha variado ~{s} solo. Es «basura del sistema»: macOS acumula espacio recuperable (cachés, instantáneas y archivos temporales) y lo suelta él mismo, así que el «usado» sube y baja aunque no borres nada. Por eso puede que la app limpie unos pocos GB y, aparte, el disco recupere muchos más: eso último lo hace el sistema, no la limpieza.":

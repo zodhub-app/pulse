@@ -476,3 +476,35 @@ input[type="range"].macup-range::-moz-range-thumb {
 input[type="range"].macup-range:disabled {
   opacity: 0.4;
 }
+
+/* ── Toasts suaves, en la línea del tema ─────────────────────────────────
+   Fondo = la tarjeta (var(--card)) con un pelín del color que corresponde;
+   texto e icono = ese color, pero legible. Sin `richColors` (fondos vivos):
+   se sobreescriben las variables --normal-* de sonner por tipo de toast. */
+[data-sonner-toast] {
+  border-radius: var(--radius);
+}
+[data-sonner-toast][data-type="success"] {
+  --normal-bg: color-mix(in oklch, var(--card) 90%, #10b981 10%);
+  --normal-border: color-mix(in oklch, var(--card) 68%, #10b981 32%);
+  --normal-text: color-mix(in oklch, var(--card-foreground) 22%, #10b981 78%);
+}
+[data-sonner-toast][data-type="error"] {
+  --normal-bg: color-mix(in oklch, var(--card) 90%, var(--destructive) 10%);
+  --normal-border: color-mix(in oklch, var(--card) 68%, var(--destructive) 32%);
+  --normal-text: color-mix(in oklch, var(--card-foreground) 18%, var(--destructive) 82%);
+}
+[data-sonner-toast][data-type="warning"] {
+  --normal-bg: color-mix(in oklch, var(--card) 90%, #f59e0b 10%);
+  --normal-border: color-mix(in oklch, var(--card) 68%, #f59e0b 32%);
+  --normal-text: color-mix(in oklch, var(--card-foreground) 20%, #f59e0b 80%);
+}
+[data-sonner-toast][data-type="info"] {
+  --normal-bg: color-mix(in oklch, var(--card) 92%, var(--primary) 8%);
+  --normal-border: color-mix(in oklch, var(--card) 72%, var(--primary) 28%);
+  --normal-text: color-mix(in oklch, var(--card-foreground) 25%, var(--primary) 75%);
+}
+/* La descripción, algo más apagada para que se lea bien sobre el tinte. */
+[data-sonner-toast] [data-description] {
+  opacity: 0.82;
+}

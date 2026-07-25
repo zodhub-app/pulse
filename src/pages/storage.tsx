@@ -76,11 +76,6 @@ export function StoragePage() {
         .sort((a, b) => b.size - a.size),
     [stats],
   );
-  const volumes = useMemo(
-    () => (stats?.volumes ?? []).slice().sort((a, b) => b.consumed - a.consumed),
-    [stats],
-  );
-
   // Vaivén reciente del disco. Responde al lío de "limpié 3,7 GB pero se
   // liberaron 150": macOS acumula espacio recuperable (cachés, instantáneas,
   // temporales del sistema) y lo suelta solo, así que el "usado" sube y baja sin
@@ -247,76 +242,35 @@ export function StoragePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-        {/* Volúmenes APFS */}
-        <Card data-slot="card" className="gap-2 py-3">
-          <CardHeader className="px-4">
+      {/* En qué se usa tu disco — TODO en un módulo, por orden de importancia,
+          repartido en dos columnas iguales (sin separar APFS/Disco: es lo mismo). */}
+      <Card data-slot="card" className="gap-2 py-3">
+        <CardHeader className="px-4">
+          <div className="flex flex-col gap-0.5">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("Volúmenes APFS")}
+              {t("En qué se usa tu disco")}
             </span>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2.5 px-4">
-            {loading && !stats ? (
-              Array.from({ length: 4 }).map((_, i) => (
+            <span className="text-[11px] text-muted-foreground/70">
+              {t(
+                "Tus carpetas reales, Aplicaciones y el sistema, por orden de tamaño. Suma el total usado; para bajar al detalle, usa el Explorador.",
+              )}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="px-4">
+          {(loading && !stats) || (homeLoading && home.length === 0) ? (
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-x-6">
+              {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-6 w-full" />
-              ))
-            ) : volumes.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{t("Sin datos")}</p>
-            ) : (
-              volumes.map((v) => {
-                const pct = stats && stats.total > 0 ? (v.consumed / stats.total) * 100 : 0;
-                return (
-                  <div key={v.name + v.role} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between gap-2 text-[11px]">
-                      <span className="truncate text-muted-foreground">
-                        {v.name}
-                        {v.role ? ` · ${v.role}` : ""}
-                      </span>
-                      <span className="shrink-0 tabular-nums">
-                        {formatBytes(v.consumed)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-chart-2 transition-[width] duration-500"
-                        style={{
-                          width: `${Math.min(100, pct)}%`,
-                          backgroundColor: "var(--chart-2)",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-
-        {/* En qué se usa tu disco — suma el total usado */}
-        <Card data-slot="card" className="gap-2 py-3">
-          <CardHeader className="px-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {t("En qué se usa tu disco")}
-              </span>
-              <span className="text-[11px] text-muted-foreground/70">
-                {t(
-                  "Tus carpetas reales, Aplicaciones y el sistema. Suma el total usado; para bajar más al detalle, usa el Explorador.",
-                )}
-              </span>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2.5 px-4">
-            {(loading && !stats) || (homeLoading && home.length === 0) ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-6 w-full" />
-              ))
-            ) : breakdown.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {t("Nada destacable por aquí.")}
-              </p>
-            ) : (
-              breakdown.map((b) => {
+          ) : breakdown.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("Nada destacable por aquí.")}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-x-6">
+              {breakdown.map((b) => {
                 const used = stats?.used ?? 0;
                 const pct = used > 0 ? (b.size / used) * 100 : 0;
                 return (
@@ -324,10 +278,10 @@ export function StoragePage() {
                     <div className="flex items-center justify-between gap-2 text-[11px]">
                       <span className="flex items-center gap-1.5">
                         <span
-                          className="size-2 rounded-full"
+                          className="size-2 shrink-0 rounded-full"
                           style={{ backgroundColor: b.color }}
                         />
-                        {b.label}
+                        <span className="truncate">{b.label}</span>
                       </span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
                         {formatBytes(b.size)}
@@ -347,11 +301,11 @@ export function StoragePage() {
                     </div>
                   </div>
                 );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Histórico de crecimiento */}
       {history.length >= 2 && (

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Shield, X } from "lucide-react";
+import { Info, Maximize2, Shield, X } from "lucide-react";
 import {
   Globe,
   type GlobeArc,
@@ -23,6 +23,11 @@ import { useOs, deviceNoun } from "@/components/os-provider";
 import type { NetworkLive, ThreatLevel } from "@/hooks/use-network-stats";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface ThreatPoint {
   location: [number, number];
@@ -195,14 +200,19 @@ export function SecurityGlobe({
       : colors.home;
 
   const globeProps: Omit<GlobeProps, "size" | "align"> = {
-    baseColor: colors.land,
+    // En claro, `--muted-foreground` (gris) hacía un globo apagado y feo. Se usa
+    // un tinte CLARO de la marca (en sintonía con la página light); en oscuro se
+    // mantiene el gris del tema, que ahí sí queda bien.
+    baseColor: isDark
+      ? colors.land
+      : "color-mix(in oklch, var(--primary) 38%, white)",
     markerColor: colors.threat,
     arcColor: colors.threat,
     glowColor: glow,
-    dark: isDark ? 1 : 0.4,
+    dark: isDark ? 1 : 0.28,
     diffuse: 1.2,
     mapBrightness: isDark ? 6 : 9,
-    mapBaseBrightness: isDark ? 0.08 : 0,
+    mapBaseBrightness: isDark ? 0.08 : 0.04,
     mapSamples: 9000, // ligero: init de cobe y GPU más suaves
     markers,
     arcs,
@@ -275,13 +285,46 @@ export function SecurityGlobe({
               >
                 {tr(meta.label)}
               </span>
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                {tr("intensidad")}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex cursor-help items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label={tr("Qué significa la intensidad")}
+                  >
+                    {tr("intensidad")}
+                    <Info className="size-3 opacity-50" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[270px] space-y-1.5 py-2">
+                  <p className="font-semibold">{tr("¿Qué es la intensidad?")}</p>
+                  <p>{tr("Nivel calculado en tiempo real con telemetría de tu red: volumen de tráfico (↓↑), conexiones TCP activas y puertos a la escucha.")}</p>
+                  <p>{tr("No detecta ataques reales. El globo representa el ruido constante de escaneos automáticos que recibe cualquier equipo en internet.")}</p>
+                  <div className="border-t pt-1.5">
+                    <p className="mb-0.5 font-medium">{tr("Niveles:")}</p>
+                    <ul className="space-y-0.5 text-[11px]">
+                      <li><span style={{ color: "#10b981" }}>●</span> <strong>{tr("Tranquila")}</strong> — {tr("red poco activa, pocos puertos expuestos")}</li>
+                      <li><span style={{ color: "var(--primary)" }}>●</span> <strong>{tr("Normal")}</strong> — {tr("actividad habitual de escritorio")}</li>
+                      <li><span style={{ color: "#f59e0b" }}>●</span> <strong>{tr("Elevada")}</strong> — {tr("muchas conexiones o tráfico alto")}</li>
+                      <li><span style={{ color: "var(--destructive)" }}>●</span> <strong>{tr("Agresiva")}</strong> — {tr("actividad de red muy intensa o puertos muy expuestos")}</li>
+                    </ul>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <div className="flex items-center gap-3 text-[11px] tabular-nums text-muted-foreground">
-              <span title={tr("Descarga")}>↓ {formatBytes(net.rxRate)}/s</span>
-              <span title={tr("Subida")}>↑ {formatBytes(net.txRate)}/s</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-default">↓ {formatBytes(net.rxRate)}/s</span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{tr("Velocidad de descarga")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-default">↑ {formatBytes(net.txRate)}/s</span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{tr("Velocidad de subida")}</TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
