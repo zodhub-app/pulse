@@ -26,6 +26,22 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.10",
+    date: { es: "27 jul 2026", en: "27 Jul 2026" },
+    title: {
+      es: "Arreglo importante: funciones online no cargaban",
+      en: "Important fix: online features failed to load",
+    },
+    body: {
+      es: "Corregido un fallo que podía impedir que Soporte, Donar, Novedades y el hueco de anuncios cargaran datos, mostrando errores de conexión.",
+      en: "Fixed a bug that could stop Support, Donate, What's new and the sidebar ad slot from loading data, showing connection errors.",
+    },
+    more: {
+      es: "El problema venía de una dirección de conexión mal configurada en las versiones publicadas; ya está corregido.",
+      en: "The issue came from a misconfigured connection address in published versions; it's now fixed.",
+    },
+  },
+  {
     v: "0.2.9",
     date: { es: "27 jul 2026", en: "27 Jul 2026" },
     title: {
