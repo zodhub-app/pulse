@@ -26,15 +26,35 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.9",
+    date: { es: "27 jul 2026", en: "27 Jul 2026" },
+    title: {
+      es: "Ajuste visual en Novedades",
+      en: "Visual tweak in What's new",
+    },
+    body: {
+      es: "Los textos largos del muro de Novedades ahora se recortan a unas pocas líneas, para que la tarjeta no crezca sin control.",
+      en: "Long entries in the What's new wall are now trimmed to a few lines, so the card doesn't grow out of control.",
+    },
+    more: {
+      es: "El resto del texto sigue siempre disponible tocando «Ver más».",
+      en: "The rest of the text is always available by tapping “See more”.",
+    },
+  },
+  {
     v: "0.2.8",
     date: { es: "27 jul 2026", en: "27 Jul 2026" },
     title: {
-      es: "Anuncios del sidebar, soporte con categorías reales y enlaces al día",
-      en: "Sidebar ads, real support categories and up-to-date links",
+      es: "Soporte más útil y enlaces siempre al día",
+      en: "More helpful Support and always up-to-date links",
     },
     body: {
-      es: "El hueco de anuncios del sidebar usa ahora el nuevo backend de ZodHub; el formulario de Soporte muestra las categorías reales de contacto (con aviso si alcanzas el límite diario de mensajes); y los enlaces a donar, descargas, privacidad y términos apuntan ya a zodhub.app en tu idioma.",
-      en: "The sidebar ad slot now uses ZodHub's new backend; the Support form shows the real contact categories (with a notice if you hit the daily message limit); and the donate, downloads, privacy and terms links now point to zodhub.app in your language.",
+      es: "Pedir ayuda es más fácil: ahora eliges el tema exacto de tu consulta, y todos los enlaces (descargas, donar, privacidad…) te llevan a la página correcta en tu idioma.",
+      en: "Getting help is easier: now you pick the exact topic of your question, and every link (downloads, donate, privacy…) takes you to the right page in your language.",
+    },
+    more: {
+      es: "Para cuidar el servicio, verás un aviso amable si envías demasiados mensajes de soporte en un mismo día. Y el espacio del lateral muestra novedades y avisos nuestros, siempre en tu idioma y sin publicidad de terceros.",
+      en: "To keep the service healthy, you'll see a friendly notice if you send too many support messages in one day. And the sidebar space shows our own news and notices, always in your language and with no third-party ads.",
     },
   },
   {

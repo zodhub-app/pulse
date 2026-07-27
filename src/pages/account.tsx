@@ -280,7 +280,8 @@ function Changelog() {
                 <h4 className="mt-1.5 text-sm font-semibold leading-snug">
                   {localize(it.title, lang)}
                 </h4>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {/* Máx. 3 líneas con elipsis; el detalle va en el acordeón "Ver más". */}
+                <p className="mt-1 line-clamp-3 text-xs leading-5 text-muted-foreground">
                   {localize(it.body, lang)}
                 </p>
 

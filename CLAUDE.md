@@ -78,6 +78,19 @@ el diccionario genérico de `language-provider.tsx`. Usar
 `--no-changelog-check` solo si el release no tiene cambios de cara al
 usuario.
 
+🛑 **Cómo se ESCRIBE cada entrada (regla del usuario, innegociable):**
+1. **Lenguaje de usuario, NUNCA técnico.** El lector es el usuario final, no un
+   dev. Prohibido "backend", "endpoint", "categorías reales de contacto",
+   "refactor", nombres de tablas/archivos, etc. Se cuenta la MEJORA que percibe
+   ("pedir ayuda es más fácil", "los enlaces te llevan a la página correcta"),
+   no la implementación técnica.
+2. **`body` corto: máximo ~3 líneas.** El timeline lo recorta a 3 líneas con
+   elipsis (`line-clamp-3` en `account.tsx`). Todo lo que no quepa en ese
+   resumen breve va en **`more`** (el acordeón "Ver más"), también en lenguaje
+   de usuario. Si hay que contar varias cosas, `body` = titular/beneficio
+   principal en 1-2 frases; `more` = el resto.
+3. `title` = beneficio claro y corto, no lista de cambios técnicos.
+
 ## Restricción de build
 
 El entorno del asistente tiene el registro npm bloqueado y no puede compilar; una
