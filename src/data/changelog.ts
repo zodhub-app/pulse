@@ -26,6 +26,18 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.8",
+    date: { es: "27 jul 2026", en: "27 Jul 2026" },
+    title: {
+      es: "Anuncios del sidebar, soporte con categorías reales y enlaces al día",
+      en: "Sidebar ads, real support categories and up-to-date links",
+    },
+    body: {
+      es: "El hueco de anuncios del sidebar usa ahora el nuevo backend de ZodHub; el formulario de Soporte muestra las categorías reales de contacto (con aviso si alcanzas el límite diario de mensajes); y los enlaces a donar, descargas, privacidad y términos apuntan ya a zodhub.app en tu idioma.",
+      en: "The sidebar ad slot now uses ZodHub's new backend; the Support form shows the real contact categories (with a notice if you hit the daily message limit); and the donate, downloads, privacy and terms links now point to zodhub.app in your language.",
+    },
+  },
+  {
     v: "0.2.7",
     date: { es: "25 jul 2026", en: "25 Jul 2026" },
     title: {
