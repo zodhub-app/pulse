@@ -48,13 +48,15 @@ export function shareText(lang: ShareLang): string {
  * URL (mismo path), el visor coge la nueva sola. El tab la muestra con
  * `object-contain`, así que cualquier proporción se ve entera sin recortes.
  *
- * (Automatización futura: un endpoint `/api/app/meta?lang=` en zodhub.app que
- * devuelva la og:image vigente evitaría tener que tocar esto nunca.)
+ * Esto es solo el RESPALDO: en runtime, el tab pide la og:image vigente a
+ * `/api/app/meta?lang=` (getAppMeta) y usa la que sirve la web, así que aunque
+ * la web renombre el archivo la app sigue mostrando la correcta. Estos nombres
+ * son los actuales (guion, 1:1) por si la API no responde.
  */
 export function shareImage(lang: ShareLang): string {
   return lang === "en"
-    ? "https://zodhub.app/og-images/page-uploads/home_og.webp"
-    : "https://zodhub.app/og-images/page-uploads/home_og-2.webp";
+    ? "https://zodhub.app/og-images/page-uploads/home-og.webp"
+    : "https://zodhub.app/og-images/page-uploads/home-og-2.webp";
 }
 
 /** Título corto para redes que piden título/asunto (Reddit, email). */

@@ -284,3 +284,9 @@ que todo «parecía» correcto: archivos presentes, tamaños normales, CI en ver
   algo a otro que dependa de ella (pasó con `reqwest` y el cliente HTTP del
   actualizador). Al añadir una crate que ya usa un plugin, comprobar el
   `Cargo.lock`.
+- **R6. Toda versión publicada necesita su entrada en `src/data/changelog.ts`**,
+  incluidas las de solo mantenimiento (p. ej. un bump de dependencias). Si no,
+  el updater sube a esa versión pero el timeline de Novedades muestra la
+  anterior como la última, y el usuario ve un desajuste (pasó con la v0.2.7:
+  bump de React sin entrada → Novedades se quedó en la v0.2.6). La entrada
+  `v` debe coincidir EXACTAMENTE con la versión del tag.

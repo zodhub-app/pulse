@@ -17,7 +17,6 @@ import { useLang } from "@/components/language-provider";
 import { useSystemStats } from "@/hooks/use-system-stats";
 import { useNetworkStats } from "@/hooks/use-network-stats";
 import type { StatsPoint } from "@/hooks/use-system-stats";
-import { getSensors } from "@/lib/api";
 import { formatBytes, formatPercent } from "@/lib/format";
 
 function tempStatus(t: number): { label: string; color: string } {
@@ -57,14 +56,6 @@ export function DashboardPage() {
   const net = useNetworkStats();
   const ready = useReady();
   const { t } = useLang();
-
-  // Debug temporal: vuelca los sensores de temperatura a la consola para
-  // identificar el de la CPU en este Mac.
-  useEffect(() => {
-    getSensors()
-      .then((s) => console.log("[ZodHub Pulse] Sensores de temperatura:", s))
-      .catch(() => {});
-  }, []);
 
   const ramPct =
     current && current.mem_total > 0

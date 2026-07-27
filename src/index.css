@@ -159,6 +159,17 @@
   #root {
     height: 100%;
   }
+  /* Cursor de mano en TODO lo interactivo. Tailwind Preflight pone `cursor:
+     default` en los <button>, por eso el ratón no cambiaba. Esto lo devuelve
+     a la manita en botones, enlaces, selects y cualquier role="button". */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
 }
 
 /* ── Scrollbars temáticas (sin capa, para que ganen siempre) ─────────────

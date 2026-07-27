@@ -50,6 +50,15 @@ const EN: Record<string, string> = {
   Notificaciones: "Notifications",
   "Actualización disponible": "Update available",
   "Actualizar ahora": "Update now",
+  "Actualizar App": "Update app",
+  Actualizaciones: "Updates",
+  "Elige un asunto": "Choose a topic",
+  "Reparto orientativo de los costes del proyecto, no contabilidad exacta.":
+    "Indicative split of the project's costs, not exact accounting.",
+  "Has alcanzado el límite diario de soporte":
+    "You've reached the daily support limit",
+  "Para enviar otro mensaje al soporte, espera unas {h} h.":
+    "To send another support message, wait about {h} h.",
   "Descargando…": "Downloading…",
   "Buscar actualizaciones": "Check for updates",
   "Comprobando actualizaciones…": "Checking for updates…",
@@ -214,8 +223,8 @@ const EN: Record<string, string> = {
   "Tus datos, solo para responderte": "Your data, only to reply to you",
   "No se usan para nada más ni se comparten. Cero telemetría.":
     "Not used for anything else or shared. Zero telemetry.",
-  "Para una captura, por ahora descríbela o pégala en el mensaje; el adjunto de archivos llegará pronto.":
-    "For a screenshot, for now describe it or paste it in the message; file attachments are coming soon.",
+  "Para una captura, descríbela o pega un enlace a la imagen en el mensaje.":
+    "For a screenshot, describe it or paste a link to the image in the message.",
   "¡Gracias! Mensaje recibido.": "Thanks! Message received.",
   "Te responderemos por email lo antes posible.":
     "We'll reply by email as soon as possible.",

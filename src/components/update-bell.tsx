@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLang } from "@/components/language-provider";
 import { useUpdates } from "@/components/updates-provider";
+import { localeFor } from "@/lib/format";
 
 /**
  * Campana de notificaciones de la barra. Muestra un LED rojo con el número de
@@ -29,7 +30,7 @@ export function UpdateBell() {
   const showLed = u.count > 0;
 
   const checkedLabel = u.lastChecked
-    ? u.lastChecked.toLocaleTimeString(lang === "es" ? "es-ES" : "en-GB", {
+    ? u.lastChecked.toLocaleTimeString(localeFor(lang), {
         hour: "2-digit",
         minute: "2-digit",
       })
@@ -107,7 +108,7 @@ export function UpdateBell() {
           </div>
 
           {u.notes && !downloading && !installing && (
-            <p className="max-h-24 overflow-auto whitespace-pre-line rounded-md bg-black/10 p-2 text-xs text-muted-foreground">
+            <p className="max-h-24 overflow-y-auto whitespace-pre-line rounded-md bg-muted/60 p-2 text-xs leading-relaxed break-words text-muted-foreground">
               {u.notes}
             </p>
           )}

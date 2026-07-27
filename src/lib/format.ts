@@ -47,6 +47,39 @@ export function formatPercent(value: number, digits = 0): string {
   return `${value.toFixed(digits)}%`;
 }
 
+/**
+ * Locale BCP-47 para `Intl`/`toLocaleString`, derivado del idioma de la app.
+ * Único sitio: antes había "es-ES"/"en-GB"/"en-US" sueltos por varios archivos.
+ */
+export function localeFor(lang: "es" | "en"): string {
+  return lang === "es" ? "es-ES" : "en-US";
+}
+
+/**
+ * Formatea un importe con su divisa, en el idioma de la app.
+ *
+ * @param amount importe. Por defecto en unidades BASE (euros); si `minor` es
+ *   true, viene en unidades menores (céntimos) y se divide entre 100.
+ */
+export function formatCurrency(
+  amount: number,
+  currency: string,
+  lang: "es" | "en",
+  opts: { minor?: boolean } = {},
+): string {
+  const value = opts.minor ? amount / 100 : amount;
+  try {
+    return new Intl.NumberFormat(localeFor(lang), {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    // Divisa desconocida para Intl: caemos a número + código, sin romper.
+    return `${value.toLocaleString(localeFor(lang), { maximumFractionDigits: 2 })} ${currency}`;
+  }
+}
+
 export function formatUptime(secs: number): string {
   const d = Math.floor(secs / 86400);
   const h = Math.floor((secs % 86400) / 3600);

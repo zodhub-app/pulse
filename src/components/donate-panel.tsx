@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
 import { createDonationIntent, getDonationConfig } from "@/lib/api";
 import { useCachedResource } from "@/hooks/use-cached-resource";
+import { formatCurrency } from "@/lib/format";
 
 // Importes sugeridos, en unidades menores (céntimos): 3 €, 5 €, 10 €, 25 €.
 const AMOUNTS = [300, 500, 1000, 2500] as const;
@@ -28,16 +29,6 @@ function stripeFor(pk: string): Promise<Stripe | null> {
   return p;
 }
 
-function euros(minor: number): string {
-  const n = minor / 100;
-  return `${n.toLocaleString("es-ES", { maximumFractionDigits: 2 })} €`;
-}
-
-/** Formatea un importe en unidades BASE (no céntimos) con su divisa. */
-function money(base: number, currency: string): string {
-  const n = base.toLocaleString("es-ES", { maximumFractionDigits: 2 });
-  return currency === "EUR" ? `${n} €` : `${n} ${currency}`;
-}
 
 /** Paso de pago: tarjeta (Stripe Elements) + confirmación, todo dentro de la app. */
 function PaymentStep({
@@ -103,7 +94,7 @@ function PaymentStep({
 
 /** Módulo de donaciones inline (selector + meta del mes), con pago en la app. */
 export function DonatePanel() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [freq, setFreq] = useState<"once" | "monthly">("once");
   const [amount, setAmount] = useState<number>(500);
   const [custom, setCustom] = useState("");
@@ -167,10 +158,10 @@ export function DonatePanel() {
         {ready ? (
           <Elements
             stripe={stripeFor(pk as string)}
-            options={{ clientSecret: clientSecret as string, locale: "es" }}
+            options={{ clientSecret: clientSecret as string, locale: lang }}
           >
             <PaymentStep
-              amountLabel={euros(effective)}
+              amountLabel={formatCurrency(effective, "EUR", lang, { minor: true })}
               onDone={reset}
               onBack={reset}
             />
@@ -215,7 +206,7 @@ export function DonatePanel() {
                         : "border-foreground/[0.07] text-foreground hover:bg-white/5",
                     )}
                   >
-                    {euros(a)}
+                    {formatCurrency(a, "EUR", lang, { minor: true })}
                   </button>
                 );
               })}
@@ -256,7 +247,9 @@ export function DonatePanel() {
                 ? t("Donaciones aún no abiertas")
                 : busy
                   ? t("Iniciando…")
-                  : t("Donar {s}", { s: euros(effective) })}
+                  : t("Donar {s}", {
+                      s: formatCurrency(effective, "EUR", lang, { minor: true }),
+                    })}
             </Button>
 
             {/* Métodos. */}
@@ -287,7 +280,8 @@ export function DonatePanel() {
                 {cfg.pct}%
               </span>
               <span className="text-sm tabular-nums text-muted-foreground">
-                {money(cfg.current, cfg.currency)} / {money(cfg.goalAmount, cfg.currency)}
+                {formatCurrency(cfg.current, cfg.currency, lang)} /{" "}
+                {formatCurrency(cfg.goalAmount, cfg.currency, lang)}
               </span>
             </div>
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">

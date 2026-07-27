@@ -25,6 +25,7 @@ import {
   MessageCircle,
   MessageSquare,
   Newspaper,
+  RefreshCw,
   Scale,
   Send,
   Server,
@@ -50,30 +51,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
 import { useUpdates } from "@/components/updates-provider";
-import { subscribe, subscribeAvailable, submitSupport } from "@/lib/api";
-import { openUrl } from "@/lib/links";
+import {
+  subscribe,
+  subscribeAvailable,
+  submitSupport,
+  SupportError,
+  getContactCategories,
+  getAppMeta,
+  type ContactCategory,
+} from "@/lib/api";
+import { useCachedResource } from "@/hooks/use-cached-resource";
+import { openUrl, webLinks, GITHUB } from "@/lib/links";
+import { resolveLocaleMap, isValidEmail } from "@/lib/i18n";
 import { shareImage, shareText, shareUrls } from "@/lib/share";
 import { DonatePanel } from "@/components/donate-panel";
 import { changelog, localize } from "@/data/changelog";
-
-/** Enlaces públicos del proyecto. Un único sitio donde cambiarlos. */
-const LINKS = {
-  web: "https://zodhub.app",
-  donate: "https://zodhub-app.github.io/pulse/donar.html",
-  privacy: "https://zodhub-app.github.io/pulse/privacidad.html",
-  terms: "https://zodhub-app.github.io/pulse/terminos.html",
-  repo: "https://github.com/zodhub-app/pulse",
-  releases: "https://github.com/zodhub-app/pulse/releases",
-  issues: "https://github.com/zodhub-app/pulse/issues",
-  shareX:
-    "https://twitter.com/intent/tweet?text=" +
-    encodeURIComponent("ZodHub Pulse — mantenimiento honesto para tu equipo, 100% gratis") +
-    "&url=" +
-    encodeURIComponent("https://zodhub.app"),
-  shareLinkedin:
-    "https://www.linkedin.com/sharing/share-offsite/?url=" +
-    encodeURIComponent("https://zodhub.app"),
-};
 
 export function AccountPage() {
   const { t } = useLang();
@@ -166,8 +158,9 @@ export function AccountPage() {
 /* ─────────────────────────────── Cabecera ─────────────────────────────── */
 
 function Hero() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const u = useUpdates();
+  const links = webLinks(lang);
 
   const state =
     u.status === "available"
@@ -192,11 +185,40 @@ function Hero() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => openUrl(LINKS.web)}>
+          {/* Mismo rol que la campana: si hay versión nueva, instala; si no,
+              comprueba. Se bloquea/gira mientras trabaja. */}
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={
+              u.status === "checking" ||
+              u.status === "downloading" ||
+              u.status === "installing"
+            }
+            onClick={() =>
+              void (u.status === "available" ||
+              u.status === "downloading" ||
+              u.status === "installing"
+                ? u.install()
+                : u.checkNow())
+            }
+          >
+            <RefreshCw
+              className={cn(
+                "size-4",
+                (u.status === "checking" ||
+                  u.status === "downloading" ||
+                  u.status === "installing") &&
+                  "animate-spin",
+              )}
+            />
+            {t("Actualizar App")}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => openUrl(links.web)}>
             <Globe className="size-4" />
             {t("Visitar la web")}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => openUrl(LINKS.repo)}>
+          <Button variant="secondary" size="sm" onClick={() => openUrl(GITHUB.repo)}>
             <Github className="size-4" />
             {t("Ver en GitHub")}
           </Button>
@@ -216,7 +238,9 @@ function Changelog() {
     <div data-slot="card" className="rounded-lg border bg-card p-5">
       <header className="mb-4 flex items-center gap-2">
         <Newspaper className="size-4 text-primary" />
-        <h3 className="text-sm font-medium">{t("Lo último que hemos traído")}</h3>
+        <h3 className="text-sm font-medium">
+          {t("Lo último que hemos traído")} ({t("Actualizaciones")})
+        </h3>
       </header>
 
       <ol className="relative">
@@ -292,7 +316,7 @@ function Changelog() {
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => openUrl(LINKS.releases)}
+        onClick={() => openUrl(GITHUB.releases)}
       >
         <FileText className="size-4" />
         {t("Ver historial completo de versiones")}
@@ -494,7 +518,7 @@ function Subscribe() {
       .catch(() => setAvailable(false));
   }, []);
 
-  const emailOk = email.includes("@") && email.includes(".") && email.length > 4;
+  const emailOk = isValidEmail(email);
   const canSend = emailOk && consent && !sending;
 
   async function onSubmit() {
@@ -708,6 +732,9 @@ function SupportTab() {
               </div>
             ))}
           </div>
+          <p className="mt-4 text-[11px] leading-4 text-muted-foreground/70">
+            {t("Reparto orientativo de los costes del proyecto, no contabilidad exacta.")}
+          </p>
         </section>
 
         {/* Por qué tu apoyo importa — anima a donar, a la misma altura. */}
@@ -745,36 +772,63 @@ function SupportTab() {
 
 /* ─────────────────────────── Tab · Soporte ─────────────────────────────── */
 
-const SUPPORT_TOPICS: Array<{ id: string; es: string; en: string }> = [
-  { id: "support", es: "Soporte técnico", en: "Technical support" },
-  { id: "bug", es: "Error o fallo", en: "Bug or error" },
-  { id: "suggestion", es: "Sugerencia", en: "Suggestion" },
-  { id: "other", es: "Otro", en: "Other" },
-];
+// Respaldo si la web no devuelve categorías (idéntico al widget público de
+// zodhub.app: una sola opción "General"). Nunca se inventan categorías: las
+// reales llegan de /api/app/contact/categories.
+const FALLBACK_CATEGORY: ContactCategory = {
+  id: "fallback",
+  name: { es: "General", en: "General" },
+  description: {},
+};
 
 function SupportFormTab() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  // Categorías REALES del sistema de contacto de la web (misma tabla, misma
+  // query y orden que el formulario público). Se cargan de la API y se cachean;
+  // si en /admin/contact/categories se añade/renombra/reordena una, aquí cambia.
+  const { data: cats } = useCachedResource(
+    "support:categories",
+    getContactCategories,
+  );
+  const categories =
+    cats && cats.length > 0 ? cats : [FALLBACK_CATEGORY];
+
   // Campos EXACTOS del sistema de contacto (name, email, topic, message). No hay
   // apellidos/teléfono/adjuntos en el modelo, así que no se piden: enviarlos
   // solo confundiría y el backend los ignoraría.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [topic, setTopic] = useState("support");
+  const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
 
-  const emailOk = email.includes("@") && email.includes(".") && email.length > 4;
+  // Al llegar las categorías (o cambiar), si la elegida no existe seleccionamos
+  // la primera — igual que el widget público (topics[0]).
+  useEffect(() => {
+    if (!categories.some((c) => c.id === topic)) {
+      setTopic(categories[0]?.id ?? "");
+    }
+  }, [categories, topic]);
+
+  const selected = categories.find((c) => c.id === topic);
+  const selectedDesc = resolveLocaleMap(selected?.description, lang);
+
+  const emailOk = isValidEmail(email);
   const canSend =
-    name.trim() !== "" && emailOk && message.trim().length > 4 && !sending;
+    name.trim() !== "" &&
+    emailOk &&
+    message.trim().length > 4 &&
+    topic !== "" &&
+    !sending;
 
   async function onSubmit() {
     setSending(true);
     try {
-      const label = SUPPORT_TOPICS.find((x) => x.id === topic);
       await submitSupport({
         topic,
-        topicLabel: label ? { es: label.es, en: label.en } : undefined,
+        // Snapshot del nombre multi-idioma de la categoría, igual que la web.
+        topicLabel: selected?.name,
         name: name.trim(),
         email: email.trim(),
         message: message.trim(),
@@ -782,10 +836,20 @@ function SupportFormTab() {
       setDone(true);
       toast.success(t("Mensaje enviado. Te responderemos por email."));
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      toast.error(t("No se pudo enviar el mensaje."), {
-        description: msg || undefined,
-      });
+      if (e instanceof SupportError && e.code === "contact_daily_limit") {
+        // Tope diario alcanzado: avisamos de cuántas horas hay que esperar.
+        toast.error(t("Has alcanzado el límite diario de soporte"), {
+          description: t(
+            "Para enviar otro mensaje al soporte, espera unas {h} h.",
+            { h: e.retryAfterHours ?? 24 },
+          ),
+        });
+      } else {
+        const msg = e instanceof Error ? e.message : "";
+        toast.error(t("No se pudo enviar el mensaje."), {
+          description: msg || undefined,
+        });
+      }
     } finally {
       setSending(false);
     }
@@ -856,16 +920,21 @@ function SupportFormTab() {
               </Label>
               <Select value={topic} onValueChange={setTopic}>
                 <SelectTrigger id="sup-topic" className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder={t("Elige un asunto")} />
                 </SelectTrigger>
-                <SelectContent>
-                  {SUPPORT_TOPICS.map((x) => (
-                    <SelectItem key={x.id} value={x.id}>
-                      {t(x.es)}
+                <SelectContent position="popper" sideOffset={6} className="w-[--radix-select-trigger-width]">
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {resolveLocaleMap(c.name, lang)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedDesc && (
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  {selectedDesc}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sup-msg" className="text-xs">
@@ -932,7 +1001,7 @@ function SupportFormTab() {
         <Separator className="my-4" />
         <p className="text-[11px] leading-4 text-muted-foreground">
           {t(
-            "Para una captura, por ahora descríbela o pégala en el mensaje; el adjunto de archivos llegará pronto.",
+            "Para una captura, descríbela o pega un enlace a la imagen en el mensaje.",
           )}
         </p>
       </section>
@@ -946,8 +1015,14 @@ function ShareTab() {
   const { t, lang } = useLang();
   const text = shareText(lang);
   const urls = shareUrls(lang);
-  // La imagen OG real de zodhub.app. Si no cargara (sin red), caemos a la
-  // tarjeta de marca para no dejar un hueco roto.
+  // og:image REAL que sirve la web ahora mismo (getAppMeta la lee de la propia
+  // página, así que aunque la renombren la app la sigue). Respaldo: shareImage.
+  const { data: meta } = useCachedResource(`share:meta:${lang}`, () =>
+    getAppMeta(lang),
+  );
+  const ogImage = meta?.ogImage ?? shareImage(lang);
+  const webHost = webLinks(lang).web.replace(/^https?:\/\//, "");
+  // Si la imagen no cargara (sin red), caemos a la tarjeta de marca.
   const [imgFailed, setImgFailed] = useState(false);
 
   const socials: Array<{
@@ -977,7 +1052,7 @@ function ShareTab() {
   }
 
   return (
-    <div className="grid gap-2.5 lg:grid-cols-[3fr_2fr]">
+    <div className="grid items-start gap-2.5 lg:grid-cols-[3fr_2fr]">
       {/* Izquierda: UNA sola card que imita cómo se verá al compartir —el texto
           arriba (el post) y debajo la tarjeta del enlace con la imagen real. */}
       <section data-slot="card" className="rounded-lg border bg-card p-5">
@@ -998,27 +1073,30 @@ function ShareTab() {
 
           {/* Tarjeta del enlace (imagen + título + dominio), como en una red. */}
           <div className="mt-3 overflow-hidden rounded-lg border border-foreground/[0.07] bg-card">
-            <div className="flex h-56 items-center justify-center bg-background/40">
-              {imgFailed ? (
+            {imgFailed ? (
+              // Sin imagen (sin red): tarjeta de marca con una altura mínima.
+              <div className="flex h-48 items-center justify-center bg-background/40">
                 <div className="flex flex-col items-center justify-center gap-2 p-6 text-center">
                   <span className="logo-badge flex size-12 items-center justify-center rounded-xl text-white">
                     <Sparkles className="size-6" />
                   </span>
                   <span className="gradient-text text-xl font-bold">ZodHub Pulse</span>
                 </div>
-              ) : (
-                <img
-                  src={shareImage(lang)}
-                  alt={t("Imagen del enlace")}
-                  loading="lazy"
-                  onError={() => setImgFailed(true)}
-                  className="max-h-full max-w-full object-contain"
-                />
-              )}
-            </div>
+              </div>
+            ) : (
+              // La imagen manda su propia proporción: ancho completo, alto
+              // automático. Cuadrada se ve cuadrada; panorámica, panorámica.
+              <img
+                src={ogImage}
+                alt={t("Imagen del enlace")}
+                loading="lazy"
+                onError={() => setImgFailed(true)}
+                className="block h-auto w-full"
+              />
+            )}
             <div className="border-t border-foreground/[0.07] px-3 py-2">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                {lang === "en" ? "zodhub.app" : "zodhub.app/es"}
+                {webHost}
               </p>
               <p className="mt-0.5 text-sm font-semibold leading-tight">ZodHub Pulse</p>
               <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
@@ -1035,12 +1113,13 @@ function ShareTab() {
         </p>
       </section>
 
-      {/* Derecha: redes para compartir. Se estira a la MISMA altura que la vista
-          previa y los botones se reparten para llenar la card (bordes alineados). */}
-      <section
-        data-slot="card"
-        className="flex flex-col rounded-lg border bg-card p-5"
-      >
+      {/* Derecha: redes para compartir. Altura natural (no se estira a la de la
+          vista previa) y STICKY. El sticky va en este div ENVOLVENTE, no en el
+          data-slot="card": el skin Hera fija position:relative sobre las cards
+          con más especificidad y anularía el sticky si se pusiera en la propia
+          card (mismo patrón que AboutCard). */}
+      <div className="lg:sticky lg:top-2.5 lg:self-start">
+        <section data-slot="card" className="rounded-lg border bg-card p-5">
         <header className="mb-1 flex items-center gap-2">
           <Share2 className="size-4 text-primary" />
           <h3 className="text-sm font-medium">{t("Compartir en")}</h3>
@@ -1048,7 +1127,7 @@ function ShareTab() {
         <p className="mb-4 text-xs leading-5 text-muted-foreground">
           {t("Un clic y llega a más gente que cualquier anuncio. Gracias por correr la voz.")}
         </p>
-        <div className="flex flex-1 flex-col justify-between gap-1.5">
+        <div className="flex flex-col gap-1.5">
           {socials.map((s) => (
             <button
               key={s.label}
@@ -1061,7 +1140,8 @@ function ShareTab() {
             </button>
           ))}
         </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -1069,11 +1149,12 @@ function ShareTab() {
 /* ─────────────────────────── Pie · Acerca de y legal ───────────────────── */
 
 function LegalFooter() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const links = webLinks(lang);
   const rows: Array<{ icon: typeof FileText; label: string; url: string }> = [
-    { icon: ShieldCheck, label: t("Política de privacidad"), url: LINKS.privacy },
-    { icon: FileText, label: t("Términos de uso"), url: LINKS.terms },
-    { icon: Scale, label: t("Licencia y atribuciones"), url: LINKS.repo },
+    { icon: ShieldCheck, label: t("Política de privacidad"), url: links.privacy },
+    { icon: FileText, label: t("Términos de uso"), url: links.terms },
+    { icon: Scale, label: t("Licencia y atribuciones"), url: GITHUB.repo },
   ];
 
   return (

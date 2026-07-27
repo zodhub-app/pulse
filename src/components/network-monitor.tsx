@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { Network } from "lucide-react";
 import type { NetworkLive } from "@/hooks/use-network-stats";
-import { formatBytes } from "@/lib/format";
+import { formatBytes, localeFor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
 
@@ -46,7 +46,7 @@ export function NetworkMonitor({
 }) {
   const { t, lang } = useLang();
   const num = (n: number) =>
-    Math.round(n).toLocaleString(lang === "es" ? "es-ES" : "en-US");
+    Math.round(n).toLocaleString(localeFor(lang));
   const data = net.history.map((h) => ({ t: h.t, rx: h.rxR, tx: -h.txR }));
   const peak = Math.max(
     1,

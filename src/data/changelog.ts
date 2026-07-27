@@ -1,4 +1,5 @@
 import type { Lang } from "@/components/language-provider";
+import { resolveLocaleMap } from "@/lib/i18n";
 
 /**
  * Muro de novedades de "Tu espacio" (pestaña Novedades). Bilingüe de forma
@@ -20,10 +21,22 @@ export type ChangelogEntry = {
 };
 
 export function localize(text: Localized, lang: Lang): string {
-  return lang === "en" ? text.en : text.es;
+  return resolveLocaleMap(text, lang);
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    v: "0.2.7",
+    date: { es: "25 jul 2026", en: "25 Jul 2026" },
+    title: {
+      es: "Puesta a punto: React al día",
+      en: "Tune-up: React up to date",
+    },
+    body: {
+      es: "Actualizamos React y ReactDOM a su última versión (19.2.8) y ordenamos las dependencias. No cambia nada de cara a ti: es mantenimiento interno para que la app siga rápida y estable.",
+      en: "We updated React and ReactDOM to their latest version (19.2.8) and tidied the dependencies. Nothing changes on your side: it's internal maintenance to keep the app fast and stable.",
+    },
+  },
   {
     v: "0.2.6",
     date: { es: "25 jul 2026", en: "25 Jul 2026" },

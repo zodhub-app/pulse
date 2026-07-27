@@ -267,6 +267,53 @@ export type SupportInput = {
   email: string;
   message: string;
 };
+
+/**
+ * Categoría de contacto REAL, tal cual la gestiona la web en
+ * /admin/contact/categories. `id` es el record id completo
+ * (`contact_category:xxx`) que se envía como `topic`; `name`/`description` son
+ * los mapas multi-idioma que la app resuelve a su idioma. Es la MISMA lista que
+ * usa el formulario público de zodhub.app: si allí se cambia, aquí cambia.
+ */
+export type ContactCategory = {
+  id: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+};
+
+/** Trae las categorías de contacto activas desde la superficie de app de zodhub.app. */
+export async function getContactCategories(): Promise<ContactCategory[]> {
+  const res = await fetch(`${API_BASE}/api/app/contact/categories`, {
+    method: "GET",
+    headers: { ...APP_HEADERS },
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `contact_categories_failed_${res.status}`);
+  }
+  const j = (await res.json()) as { categories?: ContactCategory[] };
+  return j.categories ?? [];
+}
+/**
+ * Error de envío de Soporte con contexto. `code === "contact_daily_limit"`
+ * cuando se alcanzó el tope diario; `retryAfterHours` son las horas de espera.
+ */
+export class SupportError extends Error {
+  code?: string;
+  retryAfterHours?: number;
+  limit?: number;
+  constructor(
+    message: string,
+    opts?: { code?: string; retryAfterHours?: number; limit?: number },
+  ) {
+    super(message);
+    this.name = "SupportError";
+    this.code = opts?.code;
+    this.retryAfterHours = opts?.retryAfterHours;
+    this.limit = opts?.limit;
+  }
+}
+
 export async function submitSupport(input: SupportInput): Promise<void> {
   const res = await fetch(`${API_BASE}/api/app/contact`, {
     method: "POST",
@@ -274,9 +321,48 @@ export async function submitSupport(input: SupportInput): Promise<void> {
     body: JSON.stringify({ ...input, __hp_field: "" }),
   });
   if (!res.ok) {
-    const j = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(j.error || `support_failed_${res.status}`);
+    const j = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+      retryAfterHours?: number;
+      limit?: number;
+    };
+    throw new SupportError(j.error || `support_failed_${res.status}`, {
+      code: j.code,
+      retryAfterHours: j.retryAfterHours,
+      limit: j.limit,
+    });
   }
+}
+
+/**
+ * Metadatos de compartir REALES desde zodhub.app: la `og:image` vigente y la
+ * URL canónica, por idioma. La imagen la lee la web de su propia página, así
+ * que si allí la renombran, la app la sigue sin tocar código. `ogImage` puede
+ * ser null si la web no respondió (el tab cae a la imagen de respaldo).
+ */
+export type AppMeta = {
+  ogImage: string | null;
+  url: string;
+  links: {
+    web: string;
+    donate: string;
+    downloads: string;
+    privacy: string;
+    terms: string;
+  };
+};
+
+export async function getAppMeta(lang: "es" | "en"): Promise<AppMeta> {
+  const res = await fetch(`${API_BASE}/api/app/meta?lang=${lang}`, {
+    method: "GET",
+    headers: { ...APP_HEADERS },
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `app_meta_failed_${res.status}`);
+  }
+  return (await res.json()) as AppMeta;
 }
 
 /** Alta voluntaria en novedades. Único envío de datos que hace la app. */
