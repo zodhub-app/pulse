@@ -8,6 +8,21 @@
 
 import { API_BASE, APP_HEADERS } from "./config";
 
+/**
+ * Normaliza el enlace de un anuncio a una URL ABSOLUTA y válida:
+ *  - ya con esquema (`https://…`, `mailto:`, `tel:`) → tal cual;
+ *  - ruta absoluta (`/es`, `/descargas`) → contra el servidor de ZodHub;
+ *  - dominio pelado (`zodhub.app`) → se le antepone `https://`.
+ * Sin esto, `openUrl("zodhub.app")` o `openUrl("/es")` no abrían nada.
+ */
+function normalizeLink(raw?: string): string | undefined {
+	const s = raw?.trim();
+	if (!s) return undefined;
+	if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return s; // tiene esquema (http:, mailto:, tel:…)
+	if (s.startsWith("/")) return `${API_BASE}${s}`; // ruta absoluta del servidor
+	return `https://${s}`; // dominio pelado
+}
+
 /** This app's identity + the slots it offers. Declared on every launch. */
 export const ADS_APP = {
 	app: "pulse",
@@ -48,10 +63,13 @@ export async function serveAds(locale: string): Promise<ServeBanner[]> {
 		if (!res.ok) return [];
 		const data = (await res.json()) as { banners?: ServeBanner[] };
 		const banners = Array.isArray(data.banners) ? data.banners : [];
-		// Image URLs come relative to the ZodHub server; make them absolute.
+		// La imagen y el enlace pueden llegar en cualquier formato desde el admin
+		// de Ads; se normalizan a una URL ABSOLUTA y válida para que `openUrl`
+		// abra siempre (una URL a medias como "zodhub.app" o "/es" no abre nada).
 		return banners.map((b) => ({
 			...b,
 			imageUrl: b.imageUrl?.startsWith("/") ? `${API_BASE}${b.imageUrl}` : b.imageUrl,
+			linkUrl: normalizeLink(b.linkUrl),
 		}));
 	} catch {
 		return [];

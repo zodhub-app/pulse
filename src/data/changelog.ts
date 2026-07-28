@@ -26,6 +26,18 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.11",
+    date: { es: "28 jul 2026", en: "28 Jul 2026" },
+    title: {
+      es: "Los anuncios ahora enlazan bien",
+      en: "Ads now link correctly",
+    },
+    body: {
+      es: "Corregido un fallo que impedía abrir el enlace de algunos anuncios del panel lateral.",
+      en: "Fixed a bug that could prevent some sidebar ads from opening their link.",
+    },
+  },
+  {
     v: "0.2.10",
     date: { es: "27 jul 2026", en: "27 Jul 2026" },
     title: {
