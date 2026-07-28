@@ -641,6 +641,7 @@ function Subscribe() {
 
 function SupportTab() {
   const { t } = useLang();
+  const [paying, setPaying] = useState(false);
 
   const spend: Array<{
     pct: number;
@@ -695,8 +696,11 @@ function SupportTab() {
   return (
     <div className="space-y-2.5">
       {/* Módulo de donación (selector + meta del mes), pago dentro de la app. */}
-      <DonatePanel />
+      <DonatePanel onPayingChange={setPaying} />
 
+      {/* Mientras se está pagando, se ocultan para dejarle todo el sitio al
+          formulario de Stripe. */}
+      {!paying && (
       <div className="grid gap-2.5 lg:grid-cols-2">
         {/* A dónde va cada euro. */}
         <section data-slot="card" className="rounded-lg border bg-card p-5">
@@ -767,6 +771,7 @@ function SupportTab() {
           </p>
         </section>
       </div>
+      )}
     </div>
   );
 }

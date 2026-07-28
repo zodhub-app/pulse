@@ -519,3 +519,7 @@ input[type="range"].macup-range:disabled {
 [data-sonner-toast] [data-description] {
   opacity: 0.82;
 }
+
+.StripeElement iframe{
+  min-height: 340px;
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -11,19 +11,64 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/language-provider";
+import { useTheme } from "@/components/theme-provider";
 import { createDonationIntent, getDonationConfig } from "@/lib/api";
 import { useCachedResource } from "@/hooks/use-cached-resource";
 import { formatCurrency } from "@/lib/format";
+import type { Appearance } from "@stripe/stripe-js";
 
 // Importes sugeridos, en unidades menores (céntimos): 3 €, 5 €, 10 €, 25 €.
 const AMOUNTS = [300, 500, 1000, 2500] as const;
+
+/** Resuelve una variable CSS del tema (p. ej. "var(--card)") a un rgb(...) real,
+ * para pasárselo a la Appearance API de Stripe: el iframe de Stripe es un
+ * documento aparte y no ve nuestras variables CSS, así que hay que
+ * entregarle el valor ya resuelto — y en un formato que Stripe reconozca.
+ * Nuestro tema usa oklch(...) y algunos motores lo devuelven TAL CUAL en
+ * `getComputedStyle` (sin convertir a rgb); si la Appearance API de Stripe no
+ * reconoce ese formato, ignora el valor en silencio y se queda con su color
+ * de fábrica — que es justo lo que se veía (el azul-gris del tema "night" de
+ * Stripe, sin ningún cambio). Por eso se fuerza el color, sea cual sea su
+ * notación, a través de un canvas: los píxeles que devuelve un canvas 2D son
+ * siempre numéricos, sin ambigüedad de formato. */
+function resolveCssColor(cssValue: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  // 1) Resuelve var(--x) contra el DOM real (esto SÍ lo entiende cualquier
+  //    motor), aunque el resultado pueda venir en oklch(...).
+  const probe = document.createElement("span");
+  probe.style.color = cssValue;
+  document.body.appendChild(probe);
+  const computed = getComputedStyle(probe).color;
+  probe.remove();
+  if (!computed) return undefined;
+  // 2) Fuerza ese color a rgb(...) vía canvas, formato que Stripe sí acepta.
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return computed;
+    ctx.fillStyle = computed;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return `rgb(${r}, ${g}, ${b})`;
+  } catch {
+    return computed;
+  }
+}
 
 // loadStripe cachea por publishable key: no recargamos el script en cada uso.
 const stripeByKey = new Map<string, Promise<Stripe | null>>();
 function stripeFor(pk: string): Promise<Stripe | null> {
   let p = stripeByKey.get(pk);
   if (!p) {
-    p = loadStripe(pk);
+    // El "1 stripe ›" flotante NO era Link (ni en modo prueba ni en
+    // producción): es el "testing assistant" propio de Stripe.js — un panel
+    // de depuración que Stripe activa por defecto en modo sandbox y que
+    // según su propia documentación NUNCA aparece en modo live. Se apaga con
+    // esta opción del constructor (no hay flag en <Elements>/<PaymentElement>
+    // para esto, solo aquí, en la carga del SDK).
+    p = loadStripe(pk, { developerTools: { assistant: { enabled: false } } });
     stripeByKey.set(pk, p);
   }
   return p;
@@ -67,34 +112,56 @@ function PaymentStep({
     }
   }
 
+  // Sin Link, el formulario de Stripe es corto (tarjeta, caducidad, CVC,
+  // país): no necesita altura acotada ni scroll propio, así que se deja fluir
+  // en el flujo normal de la página (que ya tiene su propio scroll a nivel de
+  // app). Antes forzábamos un `max-height` + scroll interno pensando en el
+  // panel de Link (mucho más alto); con el panel corto, ese límite artificial
+  // era lo que dejaba el último campo (País) pegado al botón, sin aire — el
+  // "corte" que se veía no era contenido perdido, era falta de margen.
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex flex-col">
+      <p className="mb-2 text-sm text-muted-foreground">
         {t("Pago seguro con tarjeta, dentro de la app.")}
       </p>
-      <PaymentElement />
-      <Button
-        className="w-full bg-rose-500 text-white hover:bg-rose-600"
-        disabled={busy || !stripe}
-        onClick={pay}
-      >
-        {busy ? <Loader2 className="size-4 animate-spin" /> : <Heart className="size-4" />}
-        {busy ? t("Procesando…") : t("Donar {s}", { s: amountLabel })}
-      </Button>
-      <button
-        type="button"
-        onClick={onBack}
-        className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-      >
-        {t("Cambiar importe")}
-      </button>
+      <div>
+        {/* `wallets.link: "never"` oculta el botón/insignia flotante de Link
+            (autofill de Stripe): es de Stripe, no un aviso de entorno de
+            pruebas — saldría igual en producción si no lo ocultáramos. */}
+        <PaymentElement options={{ wallets: { link: "never" } }} />
+      </div>
+      <div className="space-y-2 pt-6">
+        <Button
+          className="w-full bg-rose-500 text-white hover:bg-rose-600"
+          disabled={busy || !stripe}
+          onClick={pay}
+        >
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Heart className="size-4" />}
+          {busy ? t("Procesando…") : t("Donar {s}", { s: amountLabel })}
+        </Button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+        >
+          {t("Cambiar importe")}
+        </button>
+      </div>
     </div>
   );
 }
 
 /** Módulo de donaciones inline (selector + meta del mes), con pago en la app. */
-export function DonatePanel() {
+export function DonatePanel({
+  onPayingChange,
+}: {
+  /** Avisa al contenedor cuando se entra/sale del paso de pago, para que
+   * pueda ocultar contenido de alrededor (p. ej. las tarjetas de debajo) y
+   * dejarle más sitio al formulario. */
+  onPayingChange?: (paying: boolean) => void;
+} = {}) {
   const { t, lang } = useLang();
+  const { theme, resolvedMode } = useTheme();
   const [freq, setFreq] = useState<"once" | "monthly">("once");
   const [amount, setAmount] = useState<number>(500);
   const [custom, setCustom] = useState("");
@@ -149,16 +216,57 @@ export function DonatePanel() {
     setPk(null);
   }
 
-  const ready = clientSecret && pk;
+  const ready = Boolean(clientSecret && pk);
+
+  // Avisa al padre de si se está pagando ahora mismo (para que oculte lo de
+  // alrededor mientras dura el pago).
+  useEffect(() => {
+    onPayingChange?.(ready);
+  }, [ready, onPayingChange]);
+
+  // Aspecto de Stripe Elements a juego con el tema de la app: oscuro/claro
+  // según el modo resuelto (sistema, o el elegido en Ajustes), reactivo — si el
+  // usuario cambia de tema mientras paga, el formulario cambia con él.
+  // `colorBackground` se resuelve al mismo --card real de la tarjeta que lo
+  // envuelve: sin esto, Stripe dibuja su PROPIA caja con su propio fondo
+  // (el de su tema "night"/"stripe" por defecto), que no coincide con el
+  // `bg-card` de nuestra sección — dos cajas distintas, una encima de otra,
+  // con una costura justo donde terminan los campos y siguen los botones,
+  // dando la sensación de que el formulario se corta ahí. Con el mismo fondo,
+  // es una sola caja continua.
+  const appearance: Appearance = useMemo(() => {
+    const colorBackground = resolveCssColor("var(--card)");
+    return {
+      theme: resolvedMode === "dark" ? "night" : "stripe",
+      variables: {
+        colorPrimary: "#f43f5e", // rose-500, a juego con el botón Donar
+        ...(colorBackground ? { colorBackground } : {})
+      },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedMode, theme]);
 
   return (
-    <div className="grid gap-2.5 lg:grid-cols-[1.35fr_1fr]">
-      {/* Izquierda: selector de importe o, tras elegir, el pago. */}
-      <section data-slot="card" className="rounded-lg border bg-card p-5">
+    <div
+      className={cn(
+        "grid gap-2.5",
+        ready ? "lg:grid-cols-1" : "lg:grid-cols-[1.35fr_1fr]",
+      )}
+    >
+      {/* Izquierda: selector de importe o, tras elegir, el pago. Mientras se
+          paga, despejamos el resto (se oculta el card de la meta) para darle
+          más espacio al formulario. */}
+      <section
+        data-slot="card"
+        className={cn(
+          "rounded-lg border bg-card p-5",
+          ready && "mx-auto w-full max-w-xl",
+        )}
+      >
         {ready ? (
           <Elements
             stripe={stripeFor(pk as string)}
-            options={{ clientSecret: clientSecret as string, locale: lang }}
+            options={{ clientSecret: clientSecret as string, locale: lang, appearance }}
           >
             <PaymentStep
               amountLabel={formatCurrency(effective, "EUR", lang, { minor: true })}
@@ -268,7 +376,9 @@ export function DonatePanel() {
         )}
       </section>
 
-      {/* Derecha: meta REAL del mes (sincronizada con la web), mismo color de card. */}
+      {/* Derecha: meta REAL del mes (sincronizada con la web), mismo color de
+          card. Oculta mientras se está pagando (más espacio al formulario). */}
+      {!ready && (
       <section data-slot="card" className="rounded-lg border bg-card p-5">
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           {t("Meta del mes · Costes")}
@@ -312,6 +422,7 @@ export function DonatePanel() {
           </p>
         )}
       </section>
+      )}
     </div>
   );
 }

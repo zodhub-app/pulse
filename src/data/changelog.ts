@@ -26,6 +26,18 @@ export function localize(text: Localized, lang: Lang): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    v: "0.2.12",
+    date: { es: "28 jul 2026", en: "28 Jul 2026" },
+    title: {
+      es: "Donar es más cómodo y a juego con tu tema",
+      en: "Donating is more comfortable and matches your theme",
+    },
+    body: {
+      es: "El formulario de pago ya no se queda corto de espacio ni muestra paneles de Stripe que no pintan nada aquí. Además, ahora usa los colores de tu tema, claro u oscuro.",
+      en: "The payment form no longer feels cramped or shows Stripe panels that don't belong there. It also now matches your theme's colors, light or dark.",
+    },
+  },
+  {
     v: "0.2.11",
     date: { es: "28 jul 2026", en: "28 Jul 2026" },
     title: {
